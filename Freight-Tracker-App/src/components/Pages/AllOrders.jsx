@@ -1,7 +1,38 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Pagination from "react-bootstrap/Pagination";
 
 function AllOrders({ orders }) {
-  const allOrdersDisplay = orders.map((order) => (
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = orders.slice(indexOfFirstItem, indexOfLastItem);
+
+  const [sortedItems, setSortedItems] = useState(currentItems);
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState(null);
+
+  useEffect(() => {
+    if (sortColumn) {
+      const sorted = [...currentItems].sort((a, b) => {
+        const valueA = a[sortColumn];
+        const valueB = b[sortColumn];
+        if (valueA < valueB) {
+          return sortDirection === "asc" ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortDirection === "asc" ? 1 : -1;
+        }
+        return 0;
+      });
+      setSortedItems(sorted);
+    } else {
+      setSortedItems(currentItems);
+    }
+  }, [sortColumn, sortDirection]);
+
+  const allOrdersDisplay = sortedItems.map((order) => (
     <tr key={order["Pick Number"]} scope="row">
       <td>{order["Customer Info"]}</td>
       <td>{order["Order #"]}</td>
@@ -14,23 +45,129 @@ function AllOrders({ orders }) {
     </tr>
   ));
 
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    const indexOfLastItem = pageNumber * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = orders.slice(indexOfFirstItem, indexOfLastItem);
+    setSortedItems(currentItems);
+  };
+
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const maxPageLinks = 20;
+
+  let startPage = 1;
+  let endPage = totalPages;
+
+  if (totalPages > maxPageLinks) {
+    const middlePage = Math.ceil(maxPageLinks / 2);
+    if (currentPage > middlePage) {
+      startPage = currentPage - middlePage + 1;
+      endPage = currentPage + middlePage - 1;
+      if (endPage > totalPages) {
+        endPage = totalPages;
+      }
+    } else {
+      endPage = maxPageLinks;
+    }
+  }
+
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
   return (
-    <div className="table-responsive">
+    <div>
       <table className="table table-bordered table-striped">
         <thead>
           <tr>
-            <th scope="col">Customer Name</th>
-            <th scope="col">Order Number</th>
-            <th scope="col">Pick Number</th>
-            <th scope="col">Carrier</th>
-            <th scope="col">Ship Confirm</th>
-            <th scope="col">Arrived at Carrier</th>
-            <th scope="col">Scheduled Date</th>
-            <th scope="col">Delivered Date</th>
+            <th scope="col" onClick={() => handleSort("Customer Info")}>
+              Customer Name
+              {sortColumn === "Customer Info" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
+            <th scope="col" onClick={() => handleSort("Order #")}>
+              Order Number
+              {sortColumn === "Order #" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
+            <th scope="col" onClick={() => handleSort("Pick Number")}>
+              Pick Number
+              {sortColumn === "Pick Number" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
+            <th scope="col" onClick={() => handleSort("Carrier")}>
+              Carrier
+              {sortColumn === "Carrier" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
+            <th scope="col" onClick={() => handleSort("Ship Confirm")}>
+              Ship Confirm
+              {sortColumn === "Ship Confirm" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
+            <th scope="col" onClick={() => handleSort("Arrived at Carrier")}>
+              Arrived at Carrier
+              {sortColumn === "Arrived at Carrier" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
+            <th scope="col" onClick={() => handleSort("Scheduled Date")}>
+              Scheduled Date
+              {sortColumn === "Scheduled Date" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
+            <th scope="col" onClick={() => handleSort("Delivered Date")}>
+              Delivered Date
+              {sortColumn === "Delivered Date" && (
+                <span>{sortDirection === "asc" ? " ▲" : " ▼"}</span>
+              )}
+            </th>
           </tr>
         </thead>
         <tbody>{allOrdersDisplay}</tbody>
       </table>
+      <Pagination>
+        <Pagination.First
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(1)}
+        />
+        <Pagination.Prev
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+        />
+        {Array.from({ length: endPage - startPage + 1 }, (_, index) => {
+          const pageNumber = startPage + index;
+          return (
+            <Pagination.Item
+              key={pageNumber}
+              active={pageNumber === currentPage}
+              onClick={() => handlePageChange(pageNumber)}
+            >
+              {pageNumber}
+            </Pagination.Item>
+          );
+        })}
+        <Pagination.Next
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+        />
+        <Pagination.Last
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(totalPages)}
+        />
+      </Pagination>
     </div>
   );
 }
